@@ -1,0 +1,49 @@
+﻿services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: it_repair
+      MARIADB_USER: it_repair_app
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/schema_and_seed.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  backend:
+    image: ${REGISTRY:?Set REGISTRY}/it-repair-backend:${BACKEND_TAG:?Set BACKEND_TAG}
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:?Set CLIENT_ORIGIN}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: it_repair_app
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_NAME: it_repair
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      JWT_EXPIRES_IN: 8h
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ${REGISTRY:?Set REGISTRY}/it-repair-frontend:${FRONTEND_TAG:?Set FRONTEND_TAG}
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  mariadb_data:
