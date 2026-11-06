@@ -9,7 +9,7 @@
       MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./database/schema_and_seed.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./schema_and_seed.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
