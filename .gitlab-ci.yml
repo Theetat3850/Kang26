@@ -1,0 +1,86 @@
+﻿stages:
+  - build
+  - deploy
+
+default:
+  tags:
+    - docker
+    - main
+
+variables:
+  REGISTRY: "192.168.200.200:5000"
+
+build_images:
+  stage: build
+  image: alpine:3.22
+  script:
+    - apk add --no-cache docker-cli
+    - docker info
+
+    # Build Backend
+    - docker build -t "$REGISTRY/it-repair-backend:$CI_COMMIT_SHA" ./it-repair-system-backend
+
+    # Build Frontend for Test
+    - docker build
+      --build-arg VITE_API_BASE_URL=http://192.168.200.201:3000/api
+      -t "$REGISTRY/it-repair-frontend:$CI_COMMIT_SHA-test"
+      ./it-repair-system-frontend
+
+    # Build Frontend for Production
+    - docker build
+      --build-arg VITE_API_BASE_URL=http://192.168.200.202:3000/api
+      -t "$REGISTRY/it-repair-frontend:$CI_COMMIT_SHA-prod"
+      ./it-repair-system-frontend
+
+    # Push Images
+    - docker push "$REGISTRY/it-repair-backend:$CI_COMMIT_SHA"
+    - docker push "$REGISTRY/it-repair-frontend:$CI_COMMIT_SHA-test"
+    - docker push "$REGISTRY/it-repair-frontend:$CI_COMMIT_SHA-prod"
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+
+.deploy_setup:
+  image: alpine:3.22
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
+    - chmod 600 ~/.ssh/known_hosts
+    - scp compose.deploy.yml database/schema_and_seed.sql deploy@$TARGET_HOST:/opt/it-repair/
+
+deploy_test:
+  extends: .deploy_setup
+  stage: deploy
+  needs:
+    - build_images
+  variables:
+    TARGET_HOST: "192.168.200.201"
+  script:
+    - |
+      ssh "deploy@$TARGET_HOST" \
+        "cd /opt/it-repair &&
+        BACKEND_TAG='$CI_COMMIT_SHA' FRONTEND_TAG='${CI_COMMIT_SHA}-test' docker compose --env-file .env -p it-repair-test -f compose.deploy.yml pull &&
+        BACKEND_TAG='$CI_COMMIT_SHA' FRONTEND_TAG='${CI_COMMIT_SHA}-test' docker compose --env-file .env -p it-repair-test -f compose.deploy.yml up -d --remove-orphans"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+
+deploy_production:
+  extends: .deploy_setup
+  stage: deploy
+  needs:
+    - build_images
+  variables:
+    TARGET_HOST: "192.168.200.202"
+  script:
+    - |
+      ssh "deploy@$TARGET_HOST" \
+        "cd /opt/it-repair &&
+        BACKEND_TAG='$CI_COMMIT_SHA' FRONTEND_TAG='${CI_COMMIT_SHA}-prod' docker compose --env-file .env -p it-repair-production -f compose.deploy.yml pull &&
+        BACKEND_TAG='$CI_COMMIT_SHA' FRONTEND_TAG='${CI_COMMIT_SHA}-prod' docker compose --env-file .env -p it-repair-production -f compose.deploy.yml up -d --remove-orphans"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
