@@ -24,14 +24,14 @@ build_images:
     # Build Frontend for Test
     - >
       docker build
-      --build-arg VITE_API_BASE_URL=http://192.168.200.201:3000/api
+      --build-arg VITE_API_BASE_URL=/api
       -t "$REGISTRY/it-repair-frontend:$CI_COMMIT_SHA-test"
       ./it-repair-system-frontend
 
     # Build Frontend for Production
     - >
       docker build
-      --build-arg VITE_API_BASE_URL=http://192.168.200.202:3000/api
+      --build-arg VITE_API_BASE_URL=/api
       -t "$REGISTRY/it-repair-frontend:$CI_COMMIT_SHA-prod"
       ./it-repair-system-frontend
 
