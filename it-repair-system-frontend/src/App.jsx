@@ -8,6 +8,7 @@ import RepairForm from './pages/RepairForm';
 import RepairList from './pages/RepairList';
 import EquipmentManage from './pages/EquipmentM';
 import UserManage from './pages/UserM';
+import IoTDashboard from './pages/IoTDashboard';
 
 export default function App() {
   return (
@@ -21,14 +22,16 @@ export default function App() {
           {/* หน้าภายในระบบ (ต้องล็อกอินก่อน) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              {/* หน้าที่ 3 และ 4: เข้าได้ทุกคนที่ล็อกอิน */}
               <Route path="/repair-form" element={<RepairForm />} />
               <Route path="/repairs" element={<RepairList />} />
 
-              {/* หน้าที่ 5 และ 6: เข้าได้เฉพาะคนที่มีบทบาท "ผู้ดูแลระบบ" ในข้อมูล */}
               <Route element={<ProtectedRoute adminOnly={true} />}>
                 <Route path="/users" element={<UserManage />} />
                 <Route path="/equipment" element={<EquipmentManage />} />
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={['admin', 'technician']} />}>
+                <Route path="/iot" element={<IoTDashboard />} />
               </Route>
             </Route>
           </Route>

@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Wrench, Home, FilePlus, ListOrdered,
-  Users, Monitor, LogOut, ChevronDown, User
+  Users, Monitor, Activity, LogOut, ChevronDown, User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,12 +15,21 @@ export default function DashboardLayout() {
     { name: 'รายการแจ้งซ่อม', path: '/repairs', icon: ListOrdered, adminOnly: false },
     { name: 'จัดการผู้ใช้งาน', path: '/users', icon: Users, adminOnly: true },
     { name: 'จัดการอุปกรณ์ไอที', path: '/equipment', icon: Monitor, adminOnly: true },
+    { name: 'IoT Dashboard', path: '/iot', icon: Activity, roles: ['admin', 'technician'] },
   ];
 
   // แสดงเมนูแอดมินเฉพาะคนที่มีตำแหน่ง (role) เป็น "ผู้ดูแลระบบ" ในข้อมูล
-  const visibleMenus = menuItems.filter(
-    (item) => !item.adminOnly || user?.role === 'admin'
-  );
+  const visibleMenus = menuItems.filter((item) => {
+    if (item.adminOnly && user?.role !== 'admin') {
+      return false;
+    }
+
+    if (item.roles && !item.roles.includes(user?.role)) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen bg-[#eef3f9]">
