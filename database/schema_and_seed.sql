@@ -79,3 +79,59 @@ WHERE NOT EXISTS (SELECT 1 FROM device_categories WHERE name='โทรศัพ
 INSERT INTO device_categories (name, description, image_url)
 SELECT 'อื่น ๆ', 'อุปกรณ์ IT ประเภทอื่น', NULL
 WHERE NOT EXISTS (SELECT 1 FROM device_categories WHERE name='อื่น ๆ');
+
+
+-- =====================================
+-- IoT Devices
+-- =====================================
+CREATE TABLE IF NOT EXISTS iot_devices (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  device_id VARCHAR(100) NOT NULL UNIQUE,
+  device_name VARCHAR(150) NOT NULL,
+  sensor_type VARCHAR(100) NOT NULL DEFAULT 'BMP280',
+  status ENUM('online','offline') NOT NULL DEFAULT 'offline',
+  last_seen TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- =====================================
+-- IoT Sensor Readings
+-- =====================================
+CREATE TABLE IF NOT EXISTS iot_sensor_readings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  device_id VARCHAR(100) NOT NULL,
+  temperature DECIMAL(6,2) NULL,
+  pressure DECIMAL(8,2) NULL,
+  altitude DECIMAL(8,2) NULL,
+  wifi_rssi INT NULL,
+  recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX idx_iot_device_time (device_id, recorded_at),
+
+  CONSTRAINT fk_iot_readings_device
+    FOREIGN KEY (device_id)
+    REFERENCES iot_devices(device_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- =====================================
+-- Register ESP32 BMP280
+-- =====================================
+INSERT INTO iot_devices (
+  device_id,
+  device_name,
+  sensor_type,
+  status
+)
+VALUES (
+  'esp32-bmp280-01',
+  'ESP32 BMP280 #01',
+  'BMP280',
+  'offline'
+)
+ON DUPLICATE KEY UPDATE
+  device_name = VALUES(device_name),
+  sensor_type = VALUES(sensor_type);

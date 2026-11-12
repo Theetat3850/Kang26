@@ -1,5 +1,4 @@
-﻿
-services:
+﻿services:
   db:
     image: mariadb:11
     restart: unless-stopped
@@ -32,6 +31,7 @@ services:
       DB_NAME: it_repair
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       JWT_EXPIRES_IN: 8h
+      IOT_API_KEY: ${IOT_API_KEY:?Set IOT_API_KEY}
     depends_on:
       db:
         condition: service_healthy

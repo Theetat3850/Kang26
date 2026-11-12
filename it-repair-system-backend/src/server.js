@@ -24,6 +24,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/iot', require('./routes/iot'));
 app.use((req, res) => res.status(404).json({ message: 'ไม่พบ API endpoint นี้' }));
 app.use((err, req, res, next) => {
   console.error(err);
